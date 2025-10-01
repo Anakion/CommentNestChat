@@ -33,7 +33,7 @@ class CommentRepository:
         """Получить все комментарии с вложенной структурой"""
         # Получаем ВСЕ комментарии
         result = await self.session.execute(
-            select(Comments).order_by(Comments.created_at.asc())
+            select(Comments).order_by(Comments.created_at.desc())
         )
         all_comments = list(result.scalars().all())
 
