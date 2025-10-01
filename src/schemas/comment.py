@@ -12,7 +12,7 @@ ALLOWED_TAGS = ["a", "code", "i", "strong"]
 class CommentCreateSchema(BaseModel):
     user_name: str
     email: EmailStr
-    home_page: Optional[HttpUrl] = None
+    home_page: Optional[str] = None
     captcha: str
     text: str
     parent_id: Optional[int] = None
@@ -42,6 +42,19 @@ class CommentCreateSchema(BaseModel):
         for tag in tags:
             if tag not in ALLOWED_TAGS:
                 raise ValueError(f"HTML tag <{tag}> is not allowed")
+        return value
+
+        # Добавляем валидацию для home_page
+
+    @field_validator("home_page")
+    def validate_home_page(cls, value):
+        if not value:  # Это покрывает None, "", и другие "false" значения
+            return None
+
+        # Проверяем что value - строка и начинается с http/https
+        if isinstance(value, str) and not value.startswith(('http://', 'https://')):
+            raise ValueError("URL must start with http:// or https://")
+
         return value
 
 

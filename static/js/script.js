@@ -4,6 +4,7 @@ const statusEl = document.getElementById("status");
 const commentsEl = document.getElementById("comments");
 const userInput = document.getElementById("userName");
 const emailInput = document.getElementById("userEmail");
+const homePageInput = document.getElementById("homePage");
 const textInput = document.getElementById("commentText");
 const sendBtn = document.getElementById("sendButton");
 const parentIdInput = document.getElementById("parentId");
@@ -51,6 +52,7 @@ function renderComment(comment, container, level = 0) {
       <div class="user-info">
         <span class="user-name">${escapeHtml(comment.user_name)}</span>
         <span class="user-email">${escapeHtml(comment.email)}</span>
+        ${comment.home_page ? `<a href="${comment.home_page}" target="_blank" class="user-website">🌐 Website</a>` : ''}
       </div>
       <div class="comment-date">${formatDate(comment.created_at)}</div>
     </div>
@@ -231,6 +233,7 @@ function connectWS() {
 
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
+    console.log("WebSocket message:", msg);
 
     if (msg.type === "all_comments") {
       renderComments(msg.data);
@@ -240,7 +243,7 @@ function connectWS() {
   };
 
   ws.onerror = (err) => {
-    console.error("WebSocket error:", err);
+    console.log("WS error (ignore, reconnecting...)");
     statusEl.textContent = "🔴 Ошибка подключения";
     statusEl.className = "status disconnected";
     if (heartbeatInterval) clearInterval(heartbeatInterval);
@@ -285,10 +288,12 @@ sendBtn.addEventListener("click", async (e) => {
   const payload = {
     user_name: userInput.value.trim(),
     email: emailInput.value.trim(),
+    home_page: homePageInput.value.trim(),
     text: textInput.value.trim(),
     captcha: "12345",
     parent_id: currentReplyId || null
   };
+  console.log("Sending payload:", payload);
 
   // Валидация
   if (!payload.user_name) {
@@ -299,6 +304,13 @@ sendBtn.addEventListener("click", async (e) => {
     showError(emailInput, "Введите корректный email");
     return;
   }
+
+  // ← НОВАЯ ПРОВЕРКА URL
+  if (payload.home_page && !validateUrl(payload.home_page)) {
+    showError(homePageInput, "Please enter a valid URL (e.g. https://example.com)");
+    return;
+  }
+
   if (!payload.text) {
     showError(textInput, "Введите текст комментария");
     return;
@@ -350,6 +362,16 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function validateUrl(url) {
+    if (!url) return true; // Пустое поле - ок (необязательное)
+    try {
+        new URL(url);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 function formatDate(dateString) {

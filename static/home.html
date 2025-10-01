@@ -32,6 +32,13 @@
       </div>
 
       <div class="form-group">
+        <label for="homePage">Home page</label>
+        <input type="url" id="homePage" placeholder="https://example.com">
+        <div class="field-hint">Must be a valid URL starting with http:// or https://</div>
+        <span id="homePageError" class="field-error"></span>
+      </div>
+
+      <div class="form-group">
         <label for="captcha">Введите капчу: <strong>12345</strong></label>
         <input type="text" id="captcha" placeholder="Введите капчу">
         <span id="captchaError" class="field-error"></span>

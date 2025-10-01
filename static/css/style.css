@@ -385,3 +385,34 @@ button {
 ::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
 }
+
+.user-website {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 0.8em;
+    padding: 2px 6px;
+    border: 1px solid #667eea;
+    border-radius: 12px;
+    margin-left: 8px;
+    transition: all 0.3s ease;
+}
+
+.user-website:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* Стили для подсказок полей формы */
+.optional {
+    color: #718096;
+    font-size: 0.9em;
+    font-weight: normal;
+}
+
+.field-hint {
+    color: #718096;
+    font-size: 0.8em;
+    margin-top: 4px;
+    font-style: italic;
+}
