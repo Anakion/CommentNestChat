@@ -38,10 +38,52 @@ class CommentCreateSchema(BaseModel):
     # Проверка текста на разрешенные HTML-теги
     @field_validator("text")
     def validate_text(cls, value):
-        tags = re.findall(r"</?(\w+)", value)
-        for tag in tags:
-            if tag not in ALLOWED_TAGS:
-                raise ValueError(f"HTML tag <{tag}> is not allowed")
+        from html.parser import HTMLParser
+
+        class AllowedHTMLValidator(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.allowed_tags = ALLOWED_TAGS
+                self.tag_stack = []
+                self.errors = []
+
+            def handle_starttag(self, tag, attrs):
+                if tag not in self.allowed_tags:
+                    self.errors.append(f"Tag <{tag}> is not allowed")
+                    return
+
+                # Проверяем атрибуты для тега <a>
+                if tag == 'a':
+                    allowed_attrs = ['href', 'title']
+                    for attr, val in attrs:
+                        if attr not in allowed_attrs:
+                            self.errors.append(f"Attribute '{attr}' not allowed in <a> tag")
+
+                self.tag_stack.append(tag)
+
+            def handle_endtag(self, tag):
+                if not self.tag_stack:
+                    self.errors.append(f"Closing tag </{tag}> without opening tag")
+                    return
+
+                if self.tag_stack[-1] != tag:
+                    self.errors.append(f"Unclosed tag <{self.tag_stack[-1]}>")
+
+                self.tag_stack.pop()
+
+            def check_unclosed_tags(self):
+                if self.tag_stack:
+                    for tag in self.tag_stack:
+                        self.errors.append(f"Unclosed tag <{tag}>")
+
+        # Запускаем валидацию
+        validator = AllowedHTMLValidator()
+        validator.feed(value)
+        validator.check_unclosed_tags()
+
+        if validator.errors:
+            raise ValueError("; ".join(validator.errors))
+
         return value
 
         # Добавляем валидацию для home_page

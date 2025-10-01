@@ -56,7 +56,7 @@ function renderComment(comment, container, level = 0) {
       </div>
       <div class="comment-date">${formatDate(comment.created_at)}</div>
     </div>
-    <div class="comment-text">${escapeHtml(comment.text)}</div>
+    <div class="comment-text">${safeHtml(comment.text)}</div>
     <div class="comment-actions">
       <button class="reply-btn" data-id="${comment.id}">
         <span>💬 Ответить</span>
@@ -364,6 +364,34 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// ← ДОБАВЛЯЕМ ЗДЕСЬ НОВУЮ ФУНКЦИЮ
+function safeHtml(text) {
+    if (!text) return '';
+
+    // Сначала экранируем ВСЕ HTML
+    let safeText = escapeHtml(text);
+
+    // Затем разблокируем только разрешенные теги
+    const allowedTags = {
+        '&lt;strong&gt;': '<strong>',
+        '&lt;/strong&gt;': '</strong>',
+        '&lt;i&gt;': '<i>',
+        '&lt;/i&gt;': '</i>',
+        '&lt;code&gt;': '<code>',
+        '&lt;/code&gt;': '</code>',
+        '&lt;a href=': '<a href=',
+        '&lt;/a&gt;': '</a>',
+        '&lt;a title=': '<a title='
+    };
+
+    // Заменяем экранированные теги обратно на настоящие
+    for (const [escaped, original] of Object.entries(allowedTags)) {
+        safeText = safeText.replace(new RegExp(escaped, 'g'), original);
+    }
+
+    return safeText;
+}
+
 function validateUrl(url) {
     if (!url) return true; // Пустое поле - ок (необязательное)
     try {
@@ -435,9 +463,87 @@ function showSuccessMessage() {
 // Делаем функции глобальными
 window.cancelReply = cancelReply;
 
+
 // ----------------------------------------
+// ОБРАБОТЧИКИ ДЛЯ HTML ПАНЕЛИ
+function initHtmlToolbar() {
+    const toolbar = document.querySelector('.html-toolbar');
+    const textarea = document.getElementById('commentText');
+
+    if (!toolbar || !textarea) return;
+
+    // Обработчик для всех кнопок панели
+    toolbar.addEventListener('click', (e) => {
+        if (e.target.classList.contains('html-btn')) {
+            const tag = e.target.getAttribute('data-tag');
+            insertHtmlTag(tag, textarea);
+        }
+    });
+}
+
+// Функция для вставки HTML тегов
+function insertHtmlTag(tag, textarea) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+
+    let tagTemplate;
+
+    switch(tag) {
+        case 'strong':
+            tagTemplate = selectedText ? `<strong>${selectedText}</strong>` : '<strong></strong>';
+            break;
+        case 'i':
+            tagTemplate = selectedText ? `<i>${selectedText}</i>` : '<i></i>';
+            break;
+        case 'code':
+            tagTemplate = selectedText ? `<code>${selectedText}</code>` : '<code></code>';
+            break;
+        case 'a':
+            if (selectedText) {
+                tagTemplate = `<a href="${prompt('Введите URL:', 'https://')}" title="${prompt('Введите заголовок (опционально):', '')}">${selectedText}</a>`;
+            } else {
+                tagTemplate = '<a href="https://" title=""></a>';
+            }
+            break;
+        default:
+            return;
+    }
+
+    // Вставляем тег в текстовое поле
+    textarea.value = textarea.value.substring(0, start) + tagTemplate + textarea.value.substring(end);
+
+    // Устанавливаем фокус обратно в textarea
+    textarea.focus();
+
+    // Для тегов без выделенного текста - ставим курсор внутрь тегов
+    if (!selectedText) {
+        let cursorPos;
+        switch(tag) {
+            case 'a':
+                cursorPos = start + 9; // После <a href="">
+                break;
+            case 'strong':
+                cursorPos = start + 8; // После <strong>
+                break;
+            case 'i':
+                cursorPos = start + 3; // После <i>
+                break;
+            case 'code':
+                cursorPos = start + 6; // После <code>
+                break;
+            default:
+                cursorPos = start + tagTemplate.length;
+        }
+        textarea.setSelectionRange(cursorPos, cursorPos);
+    }
+}
+
+// ----------------------------------------
+
 // Инициализация
 document.addEventListener('DOMContentLoaded', async () => {
   await loadInitialComments();
   connectWS();
+  initHtmlToolbar();
 });
