@@ -368,10 +368,8 @@ function escapeHtml(text) {
 function safeHtml(text) {
     if (!text) return '';
 
-    // Сначала экранируем ВСЕ HTML
-    let safeText = escapeHtml(text);
-
-    // Затем разблокируем только разрешенные теги
+    // ПРОСТАЯ И НАДЕЖНАЯ ВЕРСИЯ
+    // Разрешаем ТОЛЬКО базовые теги через белый список
     const allowedTags = {
         '&lt;strong&gt;': '<strong>',
         '&lt;/strong&gt;': '</strong>',
@@ -379,17 +377,25 @@ function safeHtml(text) {
         '&lt;/i&gt;': '</i>',
         '&lt;code&gt;': '<code>',
         '&lt;/code&gt;': '</code>',
-        '&lt;a href=': '<a href=',
+        '&lt;a href="': '<a href="',
         '&lt;/a&gt;': '</a>',
-        '&lt;a title=': '<a title='
+        '&lt;a title="': '<a title="',
+        '"&gt;': '">'  // Закрываем атрибуты
     };
 
-    // Заменяем экранированные теги обратно на настоящие
+    // 1. Сначала экранируем ВЕСЬ текст
+    let safe = escapeHtml(text);
+
+    // 2. Аккуратно заменяем ТОЛЬКО разрешенные теги
     for (const [escaped, original] of Object.entries(allowedTags)) {
-        safeText = safeText.replace(new RegExp(escaped, 'g'), original);
+        safe = safe.replace(new RegExp(escaped, 'g'), original);
     }
 
-    return safeText;
+    console.log("HTML DEBUG:");
+    console.log("Input:", text);
+    console.log("Output:", safe);
+
+    return safe;
 }
 
 function validateUrl(url) {
