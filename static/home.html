@@ -32,24 +32,48 @@ let ws;
 let heartbeatInterval;
 
 // ----------------------------------------
-// Рендер комментариев
+// Рекурсивный рендер комментариев (полное дерево)
 function renderComments(comments) {
   commentsEl.innerHTML = "";
-  comments.forEach(c => addComment(c, commentsEl));
+  comments.forEach(c => renderCommentTree(c, commentsEl));
 }
 
-function addComment(comment, parentEl) {
-  console.log("addComment received:", typeof comment, comment);
+function renderCommentTree(comment, parentEl) {
   const li = document.createElement("li");
   li.textContent = `#${comment.id} ${comment.user_name}: ${comment.text} (${comment.created_at})`;
+  li.setAttribute("data-id", comment.id);
   parentEl.appendChild(li);
 
   if (comment.replies && comment.replies.length > 0) {
     const ul = document.createElement("ul");
     ul.className = "reply";
-    comment.replies.forEach(r => addComment(r, ul));
     li.appendChild(ul);
+    comment.replies.forEach(r => renderCommentTree(r, ul));
   }
+}
+
+// ----------------------------------------
+// Вставка нового комментария по WebSocket
+function addCommentToParent(comment) {
+  const li = document.createElement("li");
+  li.textContent = `#${comment.id} ${comment.user_name}: ${comment.text} (${comment.created_at})`;
+  li.setAttribute("data-id", comment.id);
+
+  let targetEl = commentsEl; // по умолчанию в корень
+  if (comment.parent_id) {
+    const parentLi = document.querySelector(`li[data-id='${comment.parent_id}']`);
+    if (parentLi) {
+      let ul = parentLi.querySelector("ul.reply");
+      if (!ul) {
+        ul = document.createElement("ul");
+        ul.className = "reply";
+        parentLi.appendChild(ul);
+      }
+      targetEl = ul;
+    }
+  }
+
+  targetEl.appendChild(li);
 }
 
 // ----------------------------------------
@@ -58,12 +82,10 @@ function connectWS() {
   if (ws) ws.close();
   if (heartbeatInterval) clearInterval(heartbeatInterval);
 
-  // ✅ Исправлено: путь к WS с префиксом /ws
   ws = new WebSocket(`${protocol}://${location.host}/ws/comments`);
 
   ws.onopen = () => {
-
-    // Heartbeat (ping каждые 2 секунды)
+    console.log("WS connected");
     heartbeatInterval = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) ws.send("ping");
     }, 2000);
@@ -73,10 +95,10 @@ function connectWS() {
     const msg = JSON.parse(e.data);
 
     if (msg.type === "all_comments") {
-      renderComments(msg.data);
+      renderComments(msg.data); // массив комментариев с вложенностью
     }
     if (msg.type === "new_comment") {
-      addComment(msg.data.data, commentsEl);
+      addCommentToParent(msg.data); // один новый комментарий
     }
   };
 
@@ -86,7 +108,7 @@ function connectWS() {
   };
 
   ws.onclose = () => {
-    console.log("WebSocket closed, reconnecting...");
+    console.log("WS closed, reconnecting...");
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     setTimeout(connectWS, 1000);
   };
@@ -113,14 +135,12 @@ sendBtn.addEventListener("click", async () => {
   if (!payload.user_name || !payload.email || !payload.text) return;
 
   try {
-    // Сохраняем результат fetch в переменную
     const res = await fetch("/comments/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
 
-    // Проверяем статус
     if (!res.ok) {
       const err = await res.json();
       console.error("Failed to send comment:", err);

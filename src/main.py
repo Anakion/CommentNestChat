@@ -35,6 +35,7 @@ async def check_db_changes(service: CommentService):
             await manager.broadcast_comments(current_json)
             last_state = current_json
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async for session in get_db():  # ⚡ берем сессию из генератора

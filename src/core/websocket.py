@@ -40,15 +40,28 @@ class ConnectionManager:
 
     async def broadcast_new_comment(self, comment: dict):
         """Рассылает только новый комментарий"""
+        # comment уже dict с полями комментария
         data = json.dumps({"type": "new_comment", "data": comment}, default=str)
         to_remove = []
         for ws in self.active_connections:
             try:
                 await ws.send_text(data)
-            except Exception as e:
+            except Exception:
                 to_remove.append(ws)
         for ws in to_remove:
             self.disconnect(ws)
+
+    # async def broadcast_new_comment(self, comment: dict):
+    #     """Рассылает только новый комментарий"""
+    #     data = json.dumps({"type": "new_comment", "data": comment}, default=str)
+    #     to_remove = []
+    #     for ws in self.active_connections:
+    #         try:
+    #             await ws.send_text(data)
+    #         except Exception as e:
+    #             to_remove.append(ws)
+    #     for ws in to_remove:
+    #         self.disconnect(ws)
 
 
 # Глобальный экземпляр
