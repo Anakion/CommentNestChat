@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    env_file:
+      - .dev.env
+    container_name: postgres_comment
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - "pgdata_comment:/var/lib/postgresql/data"
+
+
+volumes:
+  pgdata_comment:

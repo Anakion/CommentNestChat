@@ -1,0 +1,15 @@
+[project]
+name = "commentnestchat"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.16.5",
+    "asyncpg>=0.30.0",
+    "fastapi>=0.118.0",
+    "pip>=25.2",
+    "pydantic-settings>=2.11.0",
+    "pydantic[email]>=2.11.9",
+    "sqlalchemy>=2.0.43",
+    "uvicorn[standard]>=0.37.0",
+]
