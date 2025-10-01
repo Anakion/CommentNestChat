@@ -1,165 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Realtime Comments</title>
-  <style>
-    body { font-family: sans-serif; margin: 2rem; }
-    ul { list-style: none; padding: 0; }
-    li { padding: 0.5rem 0; border-bottom: 1px solid #ccc; }
-    .reply { margin-left: 2rem; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommentNest - Live Comments</title>
+  <link rel="stylesheet" href="static/css/style.css">
 </head>
 <body>
 
-<h1>Realtime Comments</h1>
-<ul id="comments"></ul>
+  <header>
+    <h1>💬 CommentNest</h1>
+    <div id="status" class="status disconnected">Отключено</div>
+  </header>
 
-<input id="user_name" placeholder="Имя" required>
-<input id="email" type="email" placeholder="Email" required>
-<input id="text" placeholder="Комментарий" required>
-<button id="sendBtn">Отправить</button>
+  <!-- Форма для нового комментария -->
+  <section class="comment-form">
+    <h2>Оставить комментарий</h2>
+    <form id="newCommentForm">
+      <div class="form-group">
+        <label for="userName">Имя</label>
+        <input type="text" id="userName" placeholder="Ваше имя">
+        <span id="userNameError" class="field-error"></span>
+      </div>
 
-<script>
-const commentsEl = document.getElementById("comments");
-const userInput = document.getElementById("user_name");
-const emailInput = document.getElementById("email");
-const textInput = document.getElementById("text");
-const sendBtn = document.getElementById("sendBtn");
+      <div class="form-group">
+        <label for="userEmail">Email</label>
+        <input type="email" id="userEmail" placeholder="Ваш email">
+        <span id="userEmailError" class="field-error"></span>
+      </div>
 
-const protocol = location.protocol === "https:" ? "wss" : "ws";
-let ws;
-let heartbeatInterval;
+      <div class="form-group">
+        <label for="captcha">Введите капчу: <strong>12345</strong></label>
+        <input type="text" id="captcha" placeholder="Введите капчу">
+        <span id="captchaError" class="field-error"></span>
+      </div>
 
-// ----------------------------------------
-// Рекурсивный рендер комментариев (полное дерево)
-function renderComments(comments) {
-  commentsEl.innerHTML = "";
-  comments.forEach(c => renderCommentTree(c, commentsEl));
-}
+      <div class="form-group">
+        <label for="commentText">Комментарий</label>
+        <textarea id="commentText" placeholder="Ваш комментарий"></textarea>
+        <span id="commentTextError" class="field-error"></span>
+      </div>
 
-function renderCommentTree(comment, parentEl) {
-  const li = document.createElement("li");
-  li.textContent = `#${comment.id} ${comment.user_name}: ${comment.text} (${comment.created_at})`;
-  li.setAttribute("data-id", comment.id);
-  parentEl.appendChild(li);
+      <button type="submit" id="sendButton">Отправить</button>
+    </form>
+  </section>
 
-  if (comment.replies && comment.replies.length > 0) {
-    const ul = document.createElement("ul");
-    ul.className = "reply";
-    li.appendChild(ul);
-    comment.replies.forEach(r => renderCommentTree(r, ul));
-  }
-}
-
-// ----------------------------------------
-// Вставка нового комментария по WebSocket
-function addCommentToParent(comment) {
-  const li = document.createElement("li");
-  li.textContent = `#${comment.id} ${comment.user_name}: ${comment.text} (${comment.created_at})`;
-  li.setAttribute("data-id", comment.id);
-
-  let targetEl = commentsEl; // по умолчанию в корень
-  if (comment.parent_id) {
-    const parentLi = document.querySelector(`li[data-id='${comment.parent_id}']`);
-    if (parentLi) {
-      let ul = parentLi.querySelector("ul.reply");
-      if (!ul) {
-        ul = document.createElement("ul");
-        ul.className = "reply";
-        parentLi.appendChild(ul);
-      }
-      targetEl = ul;
-    }
-  }
-
-  targetEl.appendChild(li);
-}
-
-// ----------------------------------------
-// WebSocket с пингом и автопереподключением
-function connectWS() {
-  if (ws) ws.close();
-  if (heartbeatInterval) clearInterval(heartbeatInterval);
-
-  ws = new WebSocket(`${protocol}://${location.host}/ws/comments`);
-
-  ws.onopen = () => {
-    console.log("WS connected");
-    heartbeatInterval = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) ws.send("ping");
-    }, 2000);
-  };
-
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-
-    if (msg.type === "all_comments") {
-      renderComments(msg.data); // массив комментариев с вложенностью
-    }
-    if (msg.type === "new_comment") {
-      addCommentToParent(msg.data); // один новый комментарий
-    }
-  };
-
-  ws.onerror = (err) => {
-    console.error("WebSocket error:", err);
-    if (heartbeatInterval) clearInterval(heartbeatInterval);
-  };
-
-  ws.onclose = () => {
-    console.log("WS closed, reconnecting...");
-    if (heartbeatInterval) clearInterval(heartbeatInterval);
-    setTimeout(connectWS, 1000);
-  };
-}
-
-// ----------------------------------------
-// REST загрузка текущих комментариев
-async function loadInitialComments() {
-  const res = await fetch("/comments/");
-  const data = await res.json();
-  renderComments(data);
-}
-
-// ----------------------------------------
-// Отправка нового комментария
-sendBtn.addEventListener("click", async () => {
-  const payload = {
-    user_name: userInput.value,
-    email: emailInput.value,
-    text: textInput.value,
-    captcha: "1234" // временно дефолт
-  };
-
-  if (!payload.user_name || !payload.email || !payload.text) return;
-
-  try {
-    const res = await fetch("/comments/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      console.error("Failed to send comment:", err);
-      return;
-    }
-
-    textInput.value = "";
-  } catch (e) {
-    console.error("Failed to send comment (network error):", e);
-  }
-});
-
-// ----------------------------------------
-// Инициализация
-(async () => {
-  await loadInitialComments();
-  connectWS();
-})();
-</script>
-
+  <!-- Блок комментариев -->
+  <section class="comments-section">
+    <h2>Комментарии</h2>
+    <div id="comments">
+      <p>Загрузка комментариев...</p>
+    </div>
+  </section>
+  <script src="static/js/script.js"></script>
 </body>
 </html>

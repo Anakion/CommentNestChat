@@ -28,10 +28,12 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 async def check_db_changes(service: CommentService):
     last_state = None
     while True:
+        print("💡 check_db_changes проверка БД...")  # <-- добавили лог
         await asyncio.sleep(2)  # интервал проверки
         current_state = await service.get_all_comments()  # ⚡ async если это БД
         current_json = jsonable_encoder(current_state)
         if current_json != last_state:
+            print("💡 Изменения найдены, рассылаем клиентам")
             await manager.broadcast_comments(current_json)
             last_state = current_json
 
@@ -64,6 +66,8 @@ app.include_router(websocket.router)
 async def root():
     with open(os.path.join(STATIC_DIR, "home.html"), "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
+
+print("=== THIS IS COMMENTNESTCHAT ===")
 
 # 3. ПОСЛЕДНИМ монтируем статику (НЕ на корневой путь!)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

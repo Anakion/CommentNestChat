@@ -12,43 +12,6 @@ from src.services.comment import CommentService
 router = APIRouter(prefix="/comments", tags=["comments"])
 
 
-# @router.post("/", response_model=CommentResponseSchema)
-# async def create_comment(
-#     payload: CommentCreateSchema,
-#     service: Annotated[CommentService, Depends(get_comment_service)],
-# ):
-#     new_comment = await service.create_comment(payload)
-#
-#     # Можно разослать всем только новый коммент
-#
-#     await manager.broadcast_new_comment({
-#         "type": "new_comment",
-#         "data": CommentResponseSchema.model_validate(new_comment)
-#     })
-#     print("Broadcasted new_comment:", new_comment.id)
-#
-#     return new_comment
-
-# @router.post("/", response_model=CommentResponseSchema)
-# async def create_comment(
-#     payload: CommentCreateSchema,
-#     service: Annotated[CommentService, Depends(get_comment_service)],
-# ):
-#     new_comment = await service.create_comment(payload)
-#
-#     # Преобразуем модель в dict для фронта
-#     comment_dict = jsonable_encoder(CommentResponseSchema.model_validate(new_comment))
-#     print("Отправляем новый комментарий:", comment_dict)
-#     await manager.broadcast_new_comment({
-#         "type": "new_comment",
-#         "data": comment_dict
-#     })
-#     print("Broadcasted new_comment:", new_comment.id)
-#
-#     return new_comment
-
-
-
 @router.post("/", response_model=CommentResponseSchema)
 async def create_comment(
     payload: CommentCreateSchema,
