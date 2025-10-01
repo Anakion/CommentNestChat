@@ -17,6 +17,8 @@
   <section class="comment-form">
     <h2>Оставить комментарий</h2>
     <form id="newCommentForm">
+      <input type="hidden" id="parentId" value="">
+
       <div class="form-group">
         <label for="userName">Имя</label>
         <input type="text" id="userName" placeholder="Ваше имя">
@@ -41,7 +43,10 @@
         <span id="commentTextError" class="field-error"></span>
       </div>
 
-      <button type="submit" id="sendButton">Отправить</button>
+      <div class="form-actions">
+        <button type="submit" id="sendButton">Отправить</button>
+        <button type="button" id="cancelReply" class="cancel-btn" style="display: none;">Отменить ответ</button>
+      </div>
     </form>
   </section>
 
@@ -52,6 +57,7 @@
       <p>Загрузка комментариев...</p>
     </div>
   </section>
+
   <script src="static/js/script.js"></script>
 </body>
 </html>
