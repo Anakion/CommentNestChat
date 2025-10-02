@@ -11,7 +11,7 @@ ALLOWED_TAGS = ["a", "code", "i", "strong"]
 
 class CommentCreateSchema(BaseModel):
     user_name: str
-    email: EmailStr
+    email: str
     home_page: Optional[str] = None
     captcha: str
     text: str

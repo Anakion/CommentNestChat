@@ -12,22 +12,39 @@ from src.schemas.comment import CommentCreateSchema
 class CommentRepository:
     session: AsyncSession
 
-    async def create_comment(self, comment: CommentCreateSchema) -> Comments:
+    async def create_comment(self, comment_data: dict) -> Comments:
         db_comment = Comments(
-            user_name=comment.user_name,
-            email=comment.email,
-            home_page=str(comment.home_page) if comment.home_page else None,
-            text=comment.text,
-            parent_id=comment.parent_id or None,
-            file_path=getattr(comment, "file_path", None),
-            file_type=getattr(comment, "file_type", None),
-            image_w=getattr(comment, "image_w", None),
-            image_h=getattr(comment, "image_h", None),
+            user_name=comment_data["user_name"],
+            email=comment_data["email"],
+            home_page=comment_data.get("home_page"),
+            text=comment_data["text"],
+            parent_id=comment_data.get("parent_id"),
+            file_path=comment_data.get("file_path"),
+            file_type=comment_data.get("file_type"),
+            image_w=comment_data.get("image_w"),
+            image_h=comment_data.get("image_h"),
         )
         self.session.add(db_comment)
         await self.session.commit()
         await self.session.refresh(db_comment)
         return db_comment
+
+    # async def create_comment(self, comment: CommentCreateSchema) -> Comments:
+    #     db_comment = Comments(
+    #         user_name=comment.user_name,
+    #         email=comment.email,
+    #         home_page=str(comment.home_page) if comment.home_page else None,
+    #         text=comment.text,
+    #         parent_id=comment.parent_id or None,
+    #         file_path=getattr(comment, "file_path", None),
+    #         file_type=getattr(comment, "file_type", None),
+    #         image_w=getattr(comment, "image_w", None),
+    #         image_h=getattr(comment, "image_h", None),
+    #     )
+    #     self.session.add(db_comment)
+    #     await self.session.commit()
+    #     await self.session.refresh(db_comment)
+    #     return db_comment
 
     async def get_all_comments_with_replies(self) -> list[Comments]:
         """Получить все комментарии с вложенной структурой"""

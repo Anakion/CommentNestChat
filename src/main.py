@@ -71,6 +71,7 @@ print("=== THIS IS COMMENTNESTCHAT ===")
 
 # 3. ПОСЛЕДНИМ монтируем статику (НЕ на корневой путь!)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 if __name__ == "__main__":
     import uvicorn

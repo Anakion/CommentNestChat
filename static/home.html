@@ -45,6 +45,19 @@
       </div>
 
       <div class="form-group">
+        <label for="imageUpload">Изображение (JPG, PNG, GIF, до 2MB)</label>
+        <input type="file" id="imageUpload" accept=".jpg,.jpeg,.png,.gif">
+        <div class="field-hint">Будет уменьшено до 320x240 пикселей</div>
+        <span id="imageUploadError" class="field-error"></span>
+      </div>
+
+      <div class="form-group">
+          <label for="textFileUpload">Текстовый файл (TXT, до 100KB)</label>
+          <input type="file" id="textFileUpload" accept=".txt">
+          <span id="textFileUploadError" class="field-error"></span>
+      </div>
+
+      <div class="form-group">
         <label for="commentText">Комментарий</label>
         <div class="html-toolbar">
           <button type="button" class="html-btn" data-tag="strong" title="Жирный текст">[b]</button>

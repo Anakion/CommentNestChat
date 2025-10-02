@@ -7,6 +7,8 @@ const emailInput = document.getElementById("userEmail");
 const homePageInput = document.getElementById("homePage");
 const textInput = document.getElementById("commentText");
 const sendBtn = document.getElementById("sendButton");
+const imageUpload = document.getElementById("imageUpload");
+const textFileUpload = document.getElementById("textFileUpload");
 const parentIdInput = document.getElementById("parentId");
 const cancelReplyBtn = document.getElementById("cancelReply");
 const newCommentForm = document.getElementById("newCommentForm");
@@ -57,6 +59,30 @@ function renderComment(comment, container, level = 0) {
       <div class="comment-date">${formatDate(comment.created_at)}</div>
     </div>
     <div class="comment-text">${safeHtml(comment.text)}</div>
+
+    <!-- ← ДОБАВЛЯЕМ ОТОБРАЖЕНИЕ ФАЙЛОВ -->
+    ${comment.file_path ? `
+      <div class="comment-files">
+        ${comment.file_type === 'image' ? `
+          <div class="file-preview image-preview">
+            <img src="/files/${comment.file_path}" alt="Attached image"
+                 data-width="${comment.image_w || 320}"
+                 data-height="${comment.image_h || 240}"
+                 class="preview-image">
+            <div class="file-info">🖼️ Изображение ${comment.image_w || 320}×${comment.image_h || 240}</div>
+          </div>
+        ` : ''}
+        ${comment.file_type === 'text' ? `
+          <div class="file-preview text-preview">
+            <a href="/files/${comment.file_path}" target="_blank" class="text-file-link">
+              📄 ${comment.file_path.split('/').pop()}
+            </a>
+            <div class="file-info">📝 Текстовый файл</div>
+          </div>
+        ` : ''}
+      </div>
+    ` : ''}
+
     <div class="comment-actions">
       <button class="reply-btn" data-id="${comment.id}">
         <span>💬 Ответить</span>
@@ -285,33 +311,56 @@ async function loadInitialComments() {
 sendBtn.addEventListener("click", async (e) => {
   e.preventDefault();
 
-  const payload = {
-    user_name: userInput.value.trim(),
-    email: emailInput.value.trim(),
-    home_page: homePageInput.value.trim(),
-    text: textInput.value.trim(),
-    captcha: "12345",
-    parent_id: currentReplyId || null
-  };
-  console.log("Sending payload:", payload);
+  // Создаем FormData для отправки файлов
+  const formData = new FormData();
 
-  // Валидация
-  if (!payload.user_name) {
+  // Добавляем текстовые поля
+  formData.append("user_name", userInput.value.trim());
+  formData.append("email", emailInput.value.trim());
+  formData.append("home_page", homePageInput.value.trim() || "");
+  formData.append("text", textInput.value.trim());
+  formData.append("captcha", "12345");
+  formData.append("parent_id", currentReplyId || "");
+
+  // Добавляем файлы если есть
+  if (imageUpload.files[0]) {
+    formData.append("image", imageUpload.files[0]);
+  }
+
+  if (textFileUpload.files[0]) {
+    formData.append("text_file", textFileUpload.files[0]);
+  }
+
+  console.log("Sending form data with files:", {
+    user_name: formData.get("user_name"),
+    email: formData.get("email"),
+    hasImage: !!imageUpload.files[0],
+    hasTextFile: !!textFileUpload.files[0]
+  });
+
+  // Валидация (используем значения из formData)
+  const userName = formData.get("user_name");
+  const email = formData.get("email");
+  const homePage = formData.get("home_page");
+  const text = formData.get("text");
+
+  if (!userName) {
     showError(userInput, "Введите имя");
     return;
   }
-  if (!payload.email || !isValidEmail(payload.email)) {
+  if (!validateUserName(userName)) {
+    showError(userInput, "Только английские буквы и цифры (1-60 символов)");
+    return;
+  }
+  if (!email || !isValidEmail(email)) {
     showError(emailInput, "Введите корректный email");
     return;
   }
-
-  // ← НОВАЯ ПРОВЕРКА URL
-  if (payload.home_page && !validateUrl(payload.home_page)) {
-    showError(homePageInput, "Please enter a valid URL (e.g. https://example.com)");
+  if (homePage && !validateUrl(homePage)) {
+    showError(homePageInput, "Введите корректный URL (например https://example.com)");
     return;
   }
-
-  if (!payload.text) {
+  if (!text) {
     showError(textInput, "Введите текст комментария");
     return;
   }
@@ -322,10 +371,10 @@ sendBtn.addEventListener("click", async (e) => {
     sendBtn.textContent = 'Отправка...';
     sendBtn.style.opacity = '0.7';
 
+    // Отправляем FormData (БЕЗ headers!)
     const res = await fetch("/comments/", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: formData  // ← FormData сам установит правильные headers!
     });
 
     if (!res.ok) {
@@ -333,17 +382,21 @@ sendBtn.addEventListener("click", async (e) => {
       throw new Error(err.message || "Ошибка сервера");
     }
 
-    // Успешная отправка
+    // Успешная отправка - очищаем ВСЕ поля
     textInput.value = "";
+    imageUpload.value = "";     // Очищаем файлы
+    textFileUpload.value = "";  // Очищаем файлы
     clearErrors();
 
     if (!currentReplyId) {
       userInput.value = "";
       emailInput.value = "";
+      homePageInput.value = "";
     }
 
     // Показываем временное сообщение об успехе
     showSuccessMessage();
+    cancelReply();
 
   } catch (e) {
     console.error("Failed to send comment:", e);
@@ -406,6 +459,11 @@ function validateUrl(url) {
     } catch {
         return false;
     }
+}
+
+
+function validateUserName(name) {
+    return /^[a-zA-Z0-9]{1,60}$/.test(name);
 }
 
 function formatDate(dateString) {
