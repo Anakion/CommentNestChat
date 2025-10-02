@@ -65,7 +65,7 @@ function renderComment(comment, container, level = 0) {
       <div class="comment-files">
         ${comment.file_type === 'image' ? `
           <div class="file-preview image-preview">
-            <img src="/files/${comment.file_path}" alt="Attached image"
+            <img src="/${comment.file_path}" alt="Attached image"
                  data-width="${comment.image_w || 320}"
                  data-height="${comment.image_h || 240}"
                  class="preview-image">
@@ -74,7 +74,7 @@ function renderComment(comment, container, level = 0) {
         ` : ''}
         ${comment.file_type === 'text' ? `
           <div class="file-preview text-preview">
-            <a href="/files/${comment.file_path}" target="_blank" class="text-file-link">
+            <a href="/${comment.file_path}" target="_blank" class="text-file-link">
               📄 ${comment.file_path.split('/').pop()}
             </a>
             <div class="file-info">📝 Текстовый файл</div>
