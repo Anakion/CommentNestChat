@@ -580,3 +580,34 @@ input[type="file"]::file-selector-button:hover {
     color: #6c757d;
     font-style: italic;
 }
+
+/* Стили captcha */
+
+.captcha-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* ← добавляем */
+    gap: 10px;
+    margin: 10px 0;
+    height: 40px; /* ← фиксируем высоту контейнера */
+}
+
+#captchaImage {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    height: 40px;
+    width: auto; /* ← сохраняем пропорции */
+}
+
+#refreshCaptcha {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0; /* ← запрещаем сжатие */
+}

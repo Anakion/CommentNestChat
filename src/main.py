@@ -9,6 +9,7 @@ from starlette.staticfiles import StaticFiles
 
 from src.api.v1.routers import comments
 from src.api.v1.routers import websocket
+from src.api.v1.routers import captcha
 from src.core.config import settings
 from src.core.websocket import manager
 from src.repositories.comment_repo import CommentRepository
@@ -60,6 +61,7 @@ app = FastAPI(lifespan=lifespan)
 # 1. СНАЧАЛА регистрируем API роуты и WebSocket
 app.include_router(comments.router)
 app.include_router(websocket.router)
+app.include_router(captcha.router)
 
 # 2. Главная страница
 @app.get("/")

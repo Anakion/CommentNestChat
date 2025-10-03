@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 
+from src.api.v1.routers.captcha import captcha_storage
 from src.models.comment import Comments
 from src.schemas.comment import CommentCreateSchema, CommentResponseSchema
 
@@ -13,6 +14,18 @@ class CreateCommentCommand:
 
     async def execute(self, form_data) -> Comments:
         try:
+            print("🎯 === CREATE COMMENT COMMAND ===")
+
+            # 0. ⚠️ ВРЕМЕННАЯ ПРОВЕРКА CAPTCHA
+            user_captcha = form_data.get("captcha")
+            stored_captcha = captcha_storage.get("current")
+
+            print(f"🔐 CAPTCHA check: user='{user_captcha}', stored='{stored_captcha}'")
+
+            if user_captcha != stored_captcha:
+                raise HTTPException(status_code=422, detail="Invalid CAPTCHA")
+
+
             # 1. Разделяем данные ДО валидации
             text_fields = {}
             files = {}
@@ -44,9 +57,12 @@ class CreateCommentCommand:
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(500, "Internal server error")
+            print("💥 COMMAND ERROR:", str(e))
+            raise HTTPException(status_code=500, detail="Internal server error")
 
     async def _notify_clients(self, comment):
         from src.api.v1.routers.comments import manager  # импорт здесь чтобы избежать circular import
         comment_dict = jsonable_encoder(CommentResponseSchema.model_validate(comment))
         await manager.broadcast_new_comment(comment_dict)
+
+

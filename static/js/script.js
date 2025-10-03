@@ -319,7 +319,7 @@ sendBtn.addEventListener("click", async (e) => {
   formData.append("email", emailInput.value.trim());
   formData.append("home_page", homePageInput.value.trim() || "");
   formData.append("text", textInput.value.trim());
-  formData.append("captcha", "12345");
+  formData.append("captcha", document.getElementById('captcha').value);
   formData.append("parent_id", currentReplyId || "");
 
   // Добавляем файлы если есть
@@ -397,10 +397,20 @@ sendBtn.addEventListener("click", async (e) => {
     // Показываем временное сообщение об успехе
     showSuccessMessage();
     cancelReply();
+    // ОБНОВЛЕНИЕ CAPTCHA
+    // Вместо timestamp используем random
+    document.getElementById('captchaImage').src = '/captcha?r=' + Math.random();
 
   } catch (e) {
     console.error("Failed to send comment:", e);
     alert(`Ошибка при отправке: ${e.message}`);
+
+    // ОБНОВЛЕНИЕ CAPTCHA ПРИ ОШИБКЕ
+    // ПОТОМ обновляем капчу (если ошибка была в капче)
+    if (e.message.includes("CAPTCHA")) {
+        document.getElementById('captchaImage').src = '/captcha?t=' + Date.now();
+    }
+
   } finally {
     // Разблокируем кнопку
     sendBtn.disabled = false;
@@ -603,6 +613,22 @@ function insertHtmlTag(tag, textarea) {
     }
 }
 
+
+// Обновление капчи
+function initCaptcha() {
+    const refreshBtn = document.getElementById('refreshCaptcha');
+    console.log("Refresh button found:", refreshBtn);
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            console.log("Refresh button clicked!");
+            const captchaImage = document.getElementById('captchaImage');
+            captchaImage.src = '/captcha?t=' + Date.now();
+        });
+    }
+}
+
+
 // ----------------------------------------
 
 // Инициализация
@@ -610,4 +636,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadInitialComments();
   connectWS();
   initHtmlToolbar();
+  initCaptcha();
 });

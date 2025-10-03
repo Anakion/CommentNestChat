@@ -39,7 +39,11 @@
       </div>
 
       <div class="form-group">
-        <label for="captcha">Введите капчу: <strong>12345</strong></label>
+        <label for="captcha">Введите капчу:</label>
+        <div class="captcha-container">
+          <img id="captchaImage" src="/captcha" alt="CAPTCHA">
+          <button type="button" id="refreshCaptcha">🔄</button>
+        </div>
         <input type="text" id="captcha" placeholder="Введите капчу">
         <span id="captchaError" class="field-error"></span>
       </div>
