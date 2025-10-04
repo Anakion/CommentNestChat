@@ -24,6 +24,7 @@ async def create_comment(
     return await command.execute(form_data)
 
 
+
 @router.get("/", response_model=List[CommentResponseSchema])
 async def get_all_comments(
     service: Annotated[CommentService, Depends(get_comment_service)],

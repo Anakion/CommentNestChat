@@ -611,3 +611,8 @@ input[type="file"]::file-selector-button:hover {
     justify-content: center;
     flex-shrink: 0; /* ← запрещаем сжатие */
 }
+
+input.error {
+    border-color: #e53e3e;
+    box-shadow: 0 0 0 2px rgba(229, 62, 62, 0.1);
+}

@@ -64,5 +64,3 @@ class CreateCommentCommand:
         from src.api.v1.routers.comments import manager  # импорт здесь чтобы избежать circular import
         comment_dict = jsonable_encoder(CommentResponseSchema.model_validate(comment))
         await manager.broadcast_new_comment(comment_dict)
-
-

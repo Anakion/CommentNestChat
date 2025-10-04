@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import Settings
@@ -6,6 +6,7 @@ from src.db.session import get_db
 from src.repositories.comment_repo import CommentRepository
 from src.services.comment import CommentService
 from src.services.file_service import FileService
+from src.services.redis_service import RedisService
 from src.services.validation_service import ValidationService
 from src.use_cases.create_comment_command import CreateCommentCommand
 
@@ -37,6 +38,4 @@ def get_create_comment_command(
     file_service: FileService = Depends(get_file_service)
 ) -> CreateCommentCommand:
     return CreateCommentCommand(comment_service, validation_service, file_service)
-
-
 

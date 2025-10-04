@@ -12,6 +12,10 @@ from src.api.v1.routers import websocket
 from src.api.v1.routers import captcha
 from src.core.config import settings
 from src.core.websocket import manager
+
+from starlette.middleware.sessions import SessionMiddleware
+import secrets
+
 from src.repositories.comment_repo import CommentRepository
 from src.services.comment import CommentService
 
@@ -57,6 +61,14 @@ async def lifespan(app: FastAPI):
         break  # используем только одну сессию
 
 app = FastAPI(lifespan=lifespan)
+
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=secrets.token_urlsafe(32),
+    session_cookie="sessionid",
+    max_age=3600,  # 1 час
+)
 
 # 1. СНАЧАЛА регистрируем API роуты и WebSocket
 app.include_router(comments.router)

@@ -60,7 +60,6 @@ function renderComment(comment, container, level = 0) {
     </div>
     <div class="comment-text">${safeHtml(comment.text)}</div>
 
-    <!-- ← ДОБАВЛЯЕМ ОТОБРАЖЕНИЕ ФАЙЛОВ -->
     ${comment.file_path ? `
       <div class="comment-files">
         ${comment.file_type === 'image' ? `
@@ -311,16 +310,75 @@ async function loadInitialComments() {
 sendBtn.addEventListener("click", async (e) => {
   e.preventDefault();
 
+  // Сначала валидация полей из DOM элементов
+  const userName = userInput.value.trim();
+  const email = emailInput.value.trim();
+  const homePage = homePageInput.value.trim();
+  const text = textInput.value.trim();
+  const captcha = document.getElementById('captcha').value.trim();
+  const parentId = currentReplyId || "";
+
+  // ВАЛИДАЦИЯ ВСЕХ ПОЛЕЙ
+  let hasErrors = false;
+  clearErrors();
+
+  // Валидация имени
+  if (!userName) {
+    showError(userInput, "Введите имя");
+    hasErrors = true;
+  } else if (!validateUserName(userName)) {
+    showError(userInput, "Только английские буквы и цифры (1-60 символов)");
+    hasErrors = true;
+  }
+
+  // Валидация email
+  if (!email) {
+    showError(emailInput, "Введите email");
+    hasErrors = true;
+  } else if (!isValidEmail(email)) {
+    showError(emailInput, "Введите корректный email");
+    hasErrors = true;
+  }
+
+  // Валидация homepage (необязательное поле)
+  if (homePage && !validateUrl(homePage)) {
+    showError(homePageInput, "Введите корректный URL (например https://example.com)");
+    hasErrors = true;
+  }
+
+  // Валидация текста комментария
+  if (!text) {
+    showError(textInput, "Введите текст комментария");
+    hasErrors = true;
+  }
+
+  // Валидация капчи
+  if (!captcha) {
+    const captchaInput = document.getElementById('captcha');
+    showError(captchaInput, "Введите код с картинки");
+    hasErrors = true;
+  }
+
+  // Валидация файлов
+  if (!validateFiles()) {
+    hasErrors = true;
+  }
+
+  // Если есть ошибки - прерываем отправку
+  if (hasErrors) {
+    return;
+  }
+
   // Создаем FormData для отправки файлов
   const formData = new FormData();
 
   // Добавляем текстовые поля
-  formData.append("user_name", userInput.value.trim());
-  formData.append("email", emailInput.value.trim());
-  formData.append("home_page", homePageInput.value.trim() || "");
-  formData.append("text", textInput.value.trim());
-  formData.append("captcha", document.getElementById('captcha').value);
-  formData.append("parent_id", currentReplyId || "");
+  formData.append("user_name", userName);
+  formData.append("email", email);
+  formData.append("home_page", homePage || "");
+  formData.append("text", text);
+  formData.append("captcha", captcha);
+  formData.append("parent_id", parentId);
 
   // Добавляем файлы если есть
   if (imageUpload.files[0]) {
@@ -332,38 +390,11 @@ sendBtn.addEventListener("click", async (e) => {
   }
 
   console.log("Sending form data with files:", {
-    user_name: formData.get("user_name"),
-    email: formData.get("email"),
+    user_name: userName,
+    email: email,
     hasImage: !!imageUpload.files[0],
     hasTextFile: !!textFileUpload.files[0]
   });
-
-  // Валидация (используем значения из formData)
-  const userName = formData.get("user_name");
-  const email = formData.get("email");
-  const homePage = formData.get("home_page");
-  const text = formData.get("text");
-
-  if (!userName) {
-    showError(userInput, "Введите имя");
-    return;
-  }
-  if (!validateUserName(userName)) {
-    showError(userInput, "Только английские буквы и цифры (1-60 символов)");
-    return;
-  }
-  if (!email || !isValidEmail(email)) {
-    showError(emailInput, "Введите корректный email");
-    return;
-  }
-  if (homePage && !validateUrl(homePage)) {
-    showError(homePageInput, "Введите корректный URL (например https://example.com)");
-    return;
-  }
-  if (!text) {
-    showError(textInput, "Введите текст комментария");
-    return;
-  }
 
   try {
     // Блокируем кнопку отправки
@@ -371,21 +402,37 @@ sendBtn.addEventListener("click", async (e) => {
     sendBtn.textContent = 'Отправка...';
     sendBtn.style.opacity = '0.7';
 
-    // Отправляем FormData (БЕЗ headers!)
+    // Отправляем FormData
     const res = await fetch("/comments/", {
       method: "POST",
-      body: formData  // ← FormData сам установит правильные headers!
+      body: formData
     });
 
+    const responseData = await res.json();
+
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Ошибка сервера");
+      // Обработка ошибок сервера
+      let errorMessage = responseData.message || "Ошибка сервера";
+
+      // Специальная обработка для ошибок капчи
+      if (errorMessage.includes("CAPTCHA") || errorMessage.includes("captcha")) {
+        const captchaInput = document.getElementById('captcha');
+        showError(captchaInput, errorMessage);
+        // Обновляем капчу при ошибке
+        document.getElementById('captchaImage').src = '/captcha?t=' + Date.now();
+        captchaInput.value = ''; // Очищаем поле капчи
+      } else {
+        alert(`Ошибка при отправке: ${errorMessage}`);
+      }
+
+      throw new Error(errorMessage);
     }
 
     // Успешная отправка - очищаем ВСЕ поля
     textInput.value = "";
-    imageUpload.value = "";     // Очищаем файлы
-    textFileUpload.value = "";  // Очищаем файлы
+    imageUpload.value = "";
+    textFileUpload.value = "";
+    document.getElementById('captcha').value = "";
     clearErrors();
 
     if (!currentReplyId) {
@@ -397,19 +444,13 @@ sendBtn.addEventListener("click", async (e) => {
     // Показываем временное сообщение об успехе
     showSuccessMessage();
     cancelReply();
-    // ОБНОВЛЕНИЕ CAPTCHA
-    // Вместо timestamp используем random
-    document.getElementById('captchaImage').src = '/captcha?r=' + Math.random();
+
+    // Обновляем капчу после успешной отправки
+    document.getElementById('captchaImage').src = '/captcha?t=' + Date.now();
 
   } catch (e) {
     console.error("Failed to send comment:", e);
-    alert(`Ошибка при отправке: ${e.message}`);
-
-    // ОБНОВЛЕНИЕ CAPTCHA ПРИ ОШИБКЕ
-    // ПОТОМ обновляем капчу (если ошибка была в капче)
-    if (e.message.includes("CAPTCHA")) {
-        document.getElementById('captchaImage').src = '/captcha?t=' + Date.now();
-    }
+    // Сообщение об ошибке уже показано в блоке выше
 
   } finally {
     // Разблокируем кнопку
@@ -427,7 +468,6 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// ← ДОБАВЛЯЕМ ЗДЕСЬ НОВУЮ ФУНКЦИЮ
 function safeHtml(text) {
     if (!text) return '';
 
@@ -461,19 +501,24 @@ function safeHtml(text) {
     return safe;
 }
 
-function validateUrl(url) {
-    if (!url) return true; // Пустое поле - ок (необязательное)
-    try {
-        new URL(url);
-        return true;
-    } catch {
-        return false;
-    }
+// Улучшенные функции валидации
+function validateUserName(name) {
+  return /^[a-zA-Z0-9]{1,60}$/.test(name);
 }
 
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
 
-function validateUserName(name) {
-    return /^[a-zA-Z0-9]{1,60}$/.test(name);
+function validateUrl(url) {
+  if (!url) return true; // Пустое поле - ок (необязательное)
+  try {
+    const urlObj = new URL(url);
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 function formatDate(dateString) {
@@ -491,12 +536,53 @@ function truncateText(text, maxLength) {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 }
 
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+// Функция для валидации файлов
+function validateFiles() {
+  const imageFile = imageUpload.files[0];
+  const textFile = textFileUpload.files[0];
+  let isValid = true;
+
+  if (imageFile) {
+    // Проверка типа изображения
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validImageTypes.includes(imageFile.type)) {
+      showError(imageUpload, "Разрешены только JPEG, PNG, GIF и WebP изображения");
+      isValid = false;
+    }
+
+    // Проверка размера (например, максимум 5MB)
+    if (imageFile.size > 5 * 1024 * 1024) {
+      showError(imageUpload, "Размер изображения не должен превышать 5MB");
+      isValid = false;
+    }
+  }
+
+  if (textFile) {
+    // Проверка типа текстового файла
+    const validTextTypes = ['text/plain', 'application/octet-stream'];
+    if (!validTextTypes.includes(textFile.type) && !textFile.name.endsWith('.txt')) {
+      showError(textFileUpload, "Разрешены только текстовые файлы (.txt)");
+      isValid = false;
+    }
+
+    // Проверка размера (например, максимум 100KB)
+    if (textFile.size > 100 * 1024) {
+      showError(textFileUpload, "Размер текстового файла не должен превышать 100KB");
+      isValid = false;
+    }
+  }
+
+  return isValid;
 }
 
+// Улучшенная функция показа ошибок
 function showError(inputElement, message) {
-  clearErrors();
+  // Сначала очищаем старые ошибки для этого поля
+  const existingError = inputElement.parentNode.querySelector('.field-error');
+  if (existingError) {
+    existingError.remove();
+  }
+
   const errorEl = document.createElement('span');
   errorEl.className = 'field-error';
   errorEl.textContent = message;
@@ -505,6 +591,7 @@ function showError(inputElement, message) {
   inputElement.focus();
 }
 
+// Улучшенная функция очистки ошибок
 function clearErrors() {
   document.querySelectorAll('.field-error').forEach(el => el.remove());
   document.querySelectorAll('input, textarea').forEach(el => {
@@ -536,7 +623,6 @@ function showSuccessMessage() {
 
 // Делаем функции глобальными
 window.cancelReply = cancelReply;
-
 
 // ----------------------------------------
 // ОБРАБОТЧИКИ ДЛЯ HTML ПАНЕЛИ
@@ -613,7 +699,6 @@ function insertHtmlTag(tag, textarea) {
     }
 }
 
-
 // Обновление капчи
 function initCaptcha() {
     const refreshBtn = document.getElementById('refreshCaptcha');
@@ -628,13 +713,89 @@ function initCaptcha() {
     }
 }
 
+// Реализуем live-валидацию при вводе
+function initLiveValidation() {
+  // Валидация имени пользователя
+  userInput.addEventListener('input', () => {
+    const value = userInput.value.trim();
+    const error = userInput.parentNode.querySelector('.field-error');
+
+    if (value && !validateUserName(value)) {
+      userInput.style.borderColor = '#e53e3e';
+    } else {
+      userInput.style.borderColor = '#e2e8f0';
+      if (error && error.textContent.includes('английские')) {
+        error.remove();
+      }
+    }
+  });
+
+  // Валидация email
+  emailInput.addEventListener('input', () => {
+    const value = emailInput.value.trim();
+    const error = emailInput.parentNode.querySelector('.field-error');
+
+    if (value && !isValidEmail(value)) {
+      emailInput.style.borderColor = '#e53e3e';
+    } else {
+      emailInput.style.borderColor = '#e2e8f0';
+      if (error && error.textContent.includes('email')) {
+        error.remove();
+      }
+    }
+  });
+
+  // Валидация homepage
+  homePageInput.addEventListener('input', () => {
+    const value = homePageInput.value.trim();
+    const error = homePageInput.parentNode.querySelector('.field-error');
+
+    if (value && !validateUrl(value)) {
+      homePageInput.style.borderColor = '#e53e3e';
+    } else {
+      homePageInput.style.borderColor = '#e2e8f0';
+      if (error && error.textContent.includes('URL')) {
+        error.remove();
+      }
+    }
+  });
+
+  // Валидация текста комментария
+  textInput.addEventListener('input', () => {
+    const value = textInput.value.trim();
+    const error = textInput.parentNode.querySelector('.field-error');
+
+    if (value) {
+      textInput.style.borderColor = '#e2e8f0';
+      if (error && error.textContent.includes('текст')) {
+        error.remove();
+      }
+    }
+  });
+
+  // Валидация капчи
+  const captchaInput = document.getElementById('captcha');
+  if (captchaInput) {
+    captchaInput.addEventListener('input', () => {
+      const value = captchaInput.value.trim();
+      const error = captchaInput.parentNode.querySelector('.field-error');
+
+      if (value) {
+        captchaInput.style.borderColor = '#e2e8f0';
+        if (error && error.textContent.includes('код')) {
+          error.remove();
+        }
+      }
+    });
+  }
+}
 
 // ----------------------------------------
-
 // Инициализация
 document.addEventListener('DOMContentLoaded', async () => {
   await loadInitialComments();
   connectWS();
   initHtmlToolbar();
   initCaptcha();
+  initLiveValidation();
 });
