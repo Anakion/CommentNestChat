@@ -15,8 +15,8 @@ router = APIRouter(prefix='/ws', tags=["web_socket"])
 
 @router.websocket("/comments")
 async def websocket_endpoint(
-    ws: WebSocket,
-    service: Annotated[CommentService, Depends(get_comment_service)]
+        ws: WebSocket,
+        service: Annotated[CommentService, Depends(get_comment_service)]
 ):
     comments = await service.get_all_comments()
     comments_data = [CommentResponseSchema.model_validate(c) for c in comments]
@@ -28,8 +28,6 @@ async def websocket_endpoint(
     try:
         while True:
             msg = await ws.receive_text()
-            print("WS: получено сообщение от клиента:", msg)
             # обработка ping или других сообщений
     except WebSocketDisconnect:
         manager.disconnect(ws)
-        print("WS: клиент отключился")

@@ -38,4 +38,3 @@ class CaptchaService:
         buffer.seek(0)
 
         return captcha_text, buffer
-

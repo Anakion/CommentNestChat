@@ -7,7 +7,7 @@ class ValidationService:
         self.allowed_tags = ["a", "code", "i", "strong"]
 
     async def validate_comment_data(self, form_data) -> dict:
-            # Преобразуем FormData в dict
+        # Преобразуем FormData в dict
         data_dict = {}
         for key in form_data.keys():
             data_dict[key] = form_data.get(key)

@@ -25,7 +25,6 @@ class CreateCommentCommand:
             if user_captcha != stored_captcha:
                 raise HTTPException(status_code=422, detail="Invalid CAPTCHA")
 
-
             # 1. Разделяем данные ДО валидации
             text_fields = {}
             files = {}

@@ -17,17 +17,16 @@ router = APIRouter(prefix="/comments", tags=["comments"])
 
 @router.post("/", response_model=CommentResponseSchema)
 async def create_comment(
-    request: Request,
-    command: Annotated[CreateCommentCommand, Depends(get_create_comment_command)],
+        request: Request,
+        command: Annotated[CreateCommentCommand, Depends(get_create_comment_command)],
 ):
     form_data = await request.form()
     return await command.execute(form_data)
 
 
-
 @router.get("/", response_model=List[CommentResponseSchema])
 async def get_all_comments(
-    service: Annotated[CommentService, Depends(get_comment_service)],
+        service: Annotated[CommentService, Depends(get_comment_service)],
 ):
     return await service.get_all_comments()
 
@@ -37,13 +36,9 @@ async def get_file(file_path: str):
     # file_path приходит как 'b122c957-8d09-49d1-a312-7b9b84d4fdcb.jpg'
     file_full_path = f"uploads/{file_path}"  # добавляем uploads/
 
-    print(f"🔍 Looking for file: {file_full_path}")
-
     if not os.path.exists(file_full_path):
         print(f"❌ File not found: {file_full_path}")
         raise HTTPException()
-
-    print(f"✅ File found: {file_full_path}")
 
     # Определяем Content-Type
     if file_path.lower().endswith(('.jpg', '.jpeg')):

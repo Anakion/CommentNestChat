@@ -17,7 +17,6 @@ class CommentCreateSchema(BaseModel):
     text: str
     parent_id: Optional[int] = None
 
-
     @field_validator("email")
     def validate_email(cls, value):
         if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', value):

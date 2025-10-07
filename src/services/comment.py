@@ -102,18 +102,6 @@ class CommentService:
 
         return file_path, file_type
 
-
-
-
-
-
-
-
-
-
-
-
-
     # async def create_comment(self, comment: CommentCreateSchema) -> Comments:
     #     # Если user_name пустой или состоит только из пробелов
     #     if not comment.user_name or not comment.user_name.strip():

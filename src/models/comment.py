@@ -33,7 +33,7 @@ class Comments(Base):
     # Родитель
     parent: Mapped["Comments"] = relationship(
         "Comments",
-        remote_side=[id],          # важный момент!
+        remote_side=[id],
         back_populates="replies"
     )
 

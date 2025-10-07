@@ -19,16 +19,15 @@ import secrets
 from src.repositories.comment_repo import CommentRepository
 from src.services.comment import CommentService
 
-
-from src.dependecy import get_db  # твой генератор сессии
+from src.dependecy import get_db
 from src.repositories.comment_repo import CommentRepository
 from src.services.comment import CommentService
-
 
 # Получаем абсолютный путь к корню проекта
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(PROJECT_ROOT)
 STATIC_DIR = os.path.join(BASE_DIR, "static")
+
 
 async def check_db_changes(service: CommentService):
     last_state = None
@@ -45,7 +44,7 @@ async def check_db_changes(service: CommentService):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async for session in get_db():  # ⚡ берем сессию из генератора
+    async for session in get_db():
         repo = CommentRepository(session=session)
         service = CommentService(repository=repo, settings=settings)
 
@@ -60,8 +59,8 @@ async def lifespan(app: FastAPI):
 
         break  # используем только одну сессию
 
-app = FastAPI(lifespan=lifespan)
 
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     SessionMiddleware,
@@ -70,24 +69,22 @@ app.add_middleware(
     max_age=3600,  # 1 час
 )
 
-# 1. СНАЧАЛА регистрируем API роуты и WebSocket
 app.include_router(comments.router)
 app.include_router(websocket.router)
 app.include_router(captcha.router)
 
-# 2. Главная страница
+
 @app.get("/")
 async def root():
     with open(os.path.join(STATIC_DIR, "home.html"), "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
-print("=== THIS IS COMMENTNESTCHAT ===")
 
-# 3. ПОСЛЕДНИМ монтируем статику (НЕ на корневой путь!)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("main:app", reload=True)

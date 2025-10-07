@@ -11,7 +11,6 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket, comments: list):
         await websocket.accept()
         self.active_connections.append(websocket)
-        print(f"Новое подключение. Всего подключений: {len(self.active_connections)}")
         await self.send_comments(websocket, comments)
 
     def disconnect(self, websocket: WebSocket):
@@ -51,18 +50,5 @@ class ConnectionManager:
         for ws in to_remove:
             self.disconnect(ws)
 
-    # async def broadcast_new_comment(self, comment: dict):
-    #     """Рассылает только новый комментарий"""
-    #     data = json.dumps({"type": "new_comment", "data": comment}, default=str)
-    #     to_remove = []
-    #     for ws in self.active_connections:
-    #         try:
-    #             await ws.send_text(data)
-    #         except Exception as e:
-    #             to_remove.append(ws)
-    #     for ws in to_remove:
-    #         self.disconnect(ws)
 
-
-# Глобальный экземпляр
 manager = ConnectionManager()

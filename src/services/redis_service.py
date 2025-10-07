@@ -21,5 +21,3 @@ class RedisService:
         key = f"captcha:{session_id}"
         result = await self.redis_client.delete(key)
         return result > 0  # True если ключ был удалён
-
-
