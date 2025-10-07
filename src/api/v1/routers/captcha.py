@@ -29,6 +29,8 @@ async def get_captcha(request: Request):
         media_type="image/png"
     )
 
+
+"""Реализация не законченная под redis кеш"""
 # @router.get("/")
 # async def get_captcha(
 #         request: Request,
